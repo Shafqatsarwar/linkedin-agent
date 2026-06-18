@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LinkedIn Manager Agent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f3f2ef;--surface:#fff;--border:#e0dfdc;
+  --text:#1a1a1a;--muted:#666;--hint:#999;
+  --blue:#0A66C2;--blue-light:rgba(10,102,194,0.08);
+  --green:#057642;--green-light:#e6f4ed;
+  --red:#b74700;--red-light:#fdf0e8;
+  --amber:#915907;--amber-light:#fdf6e3;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+
+/* Layout */
+#app{display:flex;min-height:100vh}
+#sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10}
+#main{margin-left:240px;flex:1;padding:32px;max-width:1100px}
+
+/* Sidebar */
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-logo i{font-size:26px;color:var(--blue)}
+.sidebar-logo span{font-size:16px;font-weight:700;color:var(--text)}
+.sidebar-logo small{display:block;font-size:11px;color:var(--hint);font-weight:400}
+
+.nav-section{padding:10px 0}
+.nav-label{padding:8px 18px 4px;font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:13px;color:var(--muted);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:#f5f5f5;color:var(--text)}
+.nav-item.active{background:var(--blue-light);color:var(--blue);font-weight:600;border-left-color:var(--blue)}
+.nav-item i{font-size:18px}
+
+.sidebar-user{margin-top:auto;padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;overflow:hidden}
+.user-avatar img{width:100%;height:100%;object-fit:cover}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-email{font-size:11px;color:var(--hint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logout-btn{background:none;border:none;cursor:pointer;color:var(--hint);padding:4px}
+.logout-btn:hover{color:var(--red)}
+
+/* Pages */
+.page{display:none}
+.page.active{display:block}
+
+/* Login page */
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.login-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:40px;max-width:420px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
+.login-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+.login-logo i{font-size:40px;color:var(--blue)}
+.login-logo h1{font-size:22px;font-weight:700}
+.login-desc{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:28px}
+.hitl-steps{text-align:left;background:#f8f8f8;border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:28px}
+.hitl-steps p{font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.hitl-step{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);margin-bottom:8px}
+.hitl-step:last-child{margin-bottom:0}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.login-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;transition:opacity .15s}
+.login-btn:hover{opacity:.88}
+.login-btn i{font-size:20px}
+
+/* Page header */
+.page-header{margin-bottom:28px}
+.page-header h2{font-size:22px;font-weight:700;color:var(--text)}
+.page-header p{font-size:14px;color:var(--muted);margin-top:4px}
+
+/* Cards */
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:24px;margin-bottom:20px}
+.card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title i{font-size:18px;color:var(--blue)}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px}
+.form-input, .form-select, .form-textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;outline:none;background:var(--surface);color:var(--text);transition:border-color .15s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-light)}
+.form-textarea{resize:vertical;min-height:100px;line-height:1.6}
+.form-hint{font-size:12px;color:var(--hint);margin-top:4px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;font-family:inherit}
+.btn:hover{background:#f5f5f5}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{opacity:.88;background:var(--blue)}
+.btn-success{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-success:hover{opacity:.88;background:var(--green)}
+.btn-danger{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-danger:hover{opacity:.88;background:var(--red)}
+.btn-sm{padding:7px 13px;font-size:13px}
+.btn i{font-size:16px}
+
+/* Draft post area */
+.draft-box{background:#f8f9fa;border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin:16px 0;font-size:14px;line-height:1.7;white-space:pre-wrap;min-height:120px;color:var(--text)}
+.draft-editable{background:var(--surface);border:1px solid var(--blue);border-radius:var(--radius-sm);padding:16px;margin:16px 0;font-size:14px;line-height:1.7;min-height:120px;color:var(--text);outline:none;resize:vertical}
+
+/* Pending posts */
+.pending-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.pending-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.pending-topic{font-size:13px;font-weight:600;color:var(--blue);background:var(--blue-light);padding:4px 10px;border-radius:20px}
+.pending-status{font-size:12px;padding:4px 10px;border-radius:20px}
+.status-pending{background:var(--amber-light);color:var(--amber)}
+.status-published{background:var(--green-light);color:var(--green)}
+.pending-text{font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;margin-bottom:16px;padding:14px;background:#f8f9fa;border-radius:var(--radius-sm)}
+.pending-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Profile section */
+.profile-section{margin-bottom:20px}
+.section-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.section-label i{font-size:16px;color:var(--blue)}
+.improved-box{background:var(--green-light);border:1px solid #b7dfc9;border-radius:var(--radius-sm);padding:14px;font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;margin-top:10px}
+.improved-label{font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}
+.stat-num{font-size:26px;font-weight:700;color:var(--blue)}
+.stat-label{font-size:12px;color:var(--hint);margin-top:4px}
+
+/* Tone selector */
+.tone-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.tone-opt{border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;cursor:pointer;text-align:center;transition:all .15s;background:var(--surface);color:var(--muted)}
+.tone-opt:hover{border-color:var(--blue);color:var(--blue)}
+.tone-opt.selected{border-color:var(--blue);background:var(--blue-light);color:var(--blue);font-weight:600}
+
+/* Toast */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:14px;opacity:0;transform:translateY(10px);transition:all .3s;z-index:100;display:flex;align-items:center;gap:8px;max-width:320px}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.success{background:var(--green)}
+#toast.error{background:var(--red)}
+
+/* Loading spinner */
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Divider */
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+
+/* Empty state */
+.empty{text-align:center;padding:40px 20px;color:var(--hint)}
+.empty i{font-size:40px;margin-bottom:12px;display:block}
+.empty p{font-size:14px}
+
+@media(max-width:768px){
+  #sidebar{transform:translateX(-100%)}
+  #main{margin-left:0;padding:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- Login Page -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <i class="ti ti-brand-linkedin"></i>
+      <h1>LinkedIn Agent</h1>
+    </div>
+    <p class="login-desc">Your personal AI assistant for LinkedIn — drafts posts, improves your profile, and only publishes with <strong>your approval</strong>.</p>
+    <div class="hitl-steps">
+      <p>How it works</p>
+      <div class="hitl-step"><span class="step-num">1</span> You give a topic or idea</div>
+      <div class="hitl-step"><span class="step-num">2</span> Gemini AI drafts the post</div>
+      <div class="hitl-step"><span class="step-num">3</span> You review, edit if needed</div>
+      <div class="hitl-step"><span class="step-num">4</span> You approve → goes live ✅</div>
+    </div>
+    <a href="/login" class="login-btn">
+      <i class="ti ti-brand-linkedin"></i> Continue with LinkedIn
+    </a>
+  </div>
+</div>
+
+<!-- Main App (shown after login) -->
+<div id="app" style="display:none">
+  <div id="sidebar">
+    <div class="sidebar-logo">
+      <i class="ti ti-brand-linkedin"></i>
+      <div>
+        <span>LinkedIn Agent</span>
+        <small>Powered by Gemini 2.5 Flash</small>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Content</div>
+      <button class="nav-item active" onclick="showPage('draft')">
+        <i class="ti ti-edit"></i> Draft Post
+      </button>
+      <button class="nav-item" onclick="showPage('pending')">
+        <i class="ti ti-clock"></i> Pending Approval
+        <span id="pending-badge" style="margin-left:auto;background:var(--blue);color:#fff;font-size:11px;padding:2px 7px;border-radius:20px;display:none">0</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Profile</div>
+      <button class="nav-item" onclick="showPage('profile')">
+        <i class="ti ti-user"></i> Improve Profile
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <button class="nav-item" onclick="showPage('dashboard')">
+        <i class="ti ti-layout-dashboard"></i> Dashboard
+      </button>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Loading...</div>
+        <div class="user-email" id="user-email"></div>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="Logout">
+        <i class="ti ti-logout" style="font-size:18px"></i>
+      </button>
+    </div>
+  </div>
+
+  <div id="main">
+
+    <!-- Dashboard -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <p>Welcome back! Here's your LinkedIn activity overview.</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-drafted">0</div>
+          <div class="stat-label">Posts drafted</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-published">0</div>
+          <div class="stat-label">Posts published</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-pending">0</div>
+          <div class="stat-label">Awaiting approval</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-improved">0</div>
+          <div class="stat-label">Profile improvements</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-info-circle"></i> Human-in-the-Loop</div>
+        <p style="font-size:14px;color:var(--muted);line-height:1.7">
+          This agent <strong>never posts anything without your explicit approval</strong>.
+          Every draft goes through your review first. You can edit, regenerate, or reject any post before it goes live on LinkedIn.
+          Your profile improvements are also shown to you before any changes are made.
+        </p>
+      </div>
+    </div>
+
+    <!-- Draft Post -->
+    <div id="page-draft" class="page">
+      <div class="page-header">
+        <h2>Draft a Post</h2>
+        <p>Describe your topic — Gemini will write it, you approve before it goes live.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-pencil"></i> What do you want to post about?</div>
+
+        <div class="form-group">
+          <label class="form-label">Topic or idea</label>
+          <textarea class="form-textarea" id="draft-topic" placeholder="e.g. How AI agents are replacing repetitive tasks in small businesses..." rows="3"></textarea>
+          <div class="form-hint">Be as specific or vague as you like — Gemini will craft a full post from your idea.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tone</label>
+          <div class="tone-grid">
+            <div class="tone-opt selected" onclick="selectTone(this,'professional')">💼 Professional</div>
+            <div class="tone-opt" onclick="selectTone(this,'conversational')">💬 Conversational</div>
+            <div class="tone-opt" onclick="selectTone(this,'storytelling')">📖 Storytelling</div>
+            <div class="tone-opt" onclick="selectTone(this,'educational')">🎓 Educational</div>
+            <div class="tone-opt" onclick="selectTone(this,'inspirational')">✨ Inspirational</div>
+            <div class="tone-opt" onclick="selectTone(this,'bold')">🔥 Bold & Direct</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="draftPost()" id="draft-btn">
+          <i class="ti ti-sparkles"></i> Generate Draft
+        </button>
+      </div>
+
+      <!-- Draft result -->
+      <div id="draft-result" style="display:none">
+        <div class="card">
+          <div class="card-title"><i class="ti ti-file-text"></i> Your Draft — Review before approving</div>
+          <div style="font-size:12px;color:var(--hint);margin-bottom:10px">
+            <i class="ti ti-lock" style="font-size:14px;vertical-align:-2px"></i>
+            This post is <strong>not live yet</strong>. Edit below, then approve to publish.
+          </div>
+          <div
+            id="draft-text"
+            class="draft-editable"
+            contenteditable="true"
+            spellcheck="true"
+          ></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+            <button class="btn btn-success" onclick="approvePost()">
+              <i class="ti ti-check"></i> Approve & Publish
+            </button>
+            <button class="btn" onclick="regeneratePost()">
+              <i class="ti ti-refresh"></i> Regenerate
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="rejectPost()">
+              <i class="ti ti-x"></i> Discard
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Approval -->
+    <div id="page-pending" class="page">
+      <div class="page-header">
+        <h2>Pending Approval</h2>
+        <p>Posts drafted by the agent waiting for your review.</p>
+      </div>
+      <div id="pending-list"></div>
+    </div>
+
+    <!-- Profile Improver -->
+    <div id="page-profile" class="page">
+      <div class="page-header">
+        <h2>Improve Your Profile</h2>
+        <p>Paste your current text — Gemini rewrites it for maximum impact.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-user-edit"></i> Profile Section</div>
+
+        <div class="form-group">
+          <label class="form-label">Which section?</label>
+          <select class="form-select" id="profile-section">
+            <option value="headline">Headline</option>
+            <option value="about">About / Summary</option>
+            <option value="skills">Skills list</option>
+            <option value="experience">Experience description</option>
+            <option value="tagline">Company tagline</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Your current text</label>
+          <textarea class="form-textarea" id="profile-current" placeholder="Paste your current LinkedIn text here..." rows="4"></textarea>
+        </div>
+
+        <button class="btn btn-primary" onclick="improveProfile()" id="improve-btn">
+          <i class="ti ti-sparkles"></i> Improve with AI
+        </button>
+      </div>
+
+      <!-- Improved result -->
+      <div id="profile-result" style="display:none">
+        <div class="card">
+          <div class="card-title"><i class="ti ti-check"></i> Improved Version</div>
+          <div style="font-size:12px;color:var(--hint);margin-bottom:12px">
+            Review the improved version below. Copy it manually to your LinkedIn profile.
+          </div>
+          <div class="improved-label">✨ AI Improved</div>
+          <div id="profile-improved" class="improved-box"></div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button class="btn btn-primary btn-sm" onclick="copyImproved()">
+              <i class="ti ti-copy"></i> Copy to clipboard
+            </button>
+            <button class="btn btn-sm" onclick="improveProfile()">
+              <i class="ti ti-refresh"></i> Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+let currentPostId = null;
+let selectedTone = 'professional';
+let stats = { drafted: 0, published: 0, pending: 0, improved: 0 };
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const res = await fetch('/api/me');
+    const data = await res.json();
+    if (data.authenticated) {
+      showApp(data);
+    } else {
+      document.getElementById('login-page').style.display = 'flex';
+    }
+  } catch(e) {
+    document.getElementById('login-page').style.display = 'flex';
+  }
+}
+
+function showApp(user) {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  document.getElementById('user-name').textContent = user.name || 'LinkedIn User';
+  document.getElementById('user-email').textContent = user.email || '';
+
+  const av = document.getElementById('user-avatar');
+  if (user.picture) {
+    av.innerHTML = `<img src="${user.picture}" alt="${user.name}"/>`;
+  } else {
+    av.textContent = (user.name || 'U').charAt(0).toUpperCase();
+  }
+
+  loadPending();
+  updateStats();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'pending') loadPending();
+}
+
+// ── Draft Post ────────────────────────────────────────────────────────────────
+function selectTone(el, tone) {
+  document.querySelectorAll('.tone-opt').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTone = tone;
+}
+
+async function draftPost() {
+  const topic = document.getElementById('draft-topic').value.trim();
+  if (!topic) { showToast('Please enter a topic first', 'error'); return; }
+
+  const btn = document.getElementById('draft-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+
+  try {
+    const res = await fetch('/api/draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, tone: selectedTone })
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error, 'error'); return; }
+
+    currentPostId = data.post_id;
+    document.getElementById('draft-text').textContent = data.draft;
+    document.getElementById('draft-result').style.display = 'block';
+    document.getElementById('draft-result').scrollIntoView({ behavior: 'smooth' });
+
+    stats.drafted++;
+    stats.pending++;
+    updateStats();
+    updatePendingBadge();
+    showToast('Draft ready — review before approving!');
+  } catch(e) {
+    showToast('Error generating draft', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-sparkles"></i> Generate Draft';
+  }
+}
+
+async function approvePost() {
+  if (!currentPostId) return;
+  const text = document.getElementById('draft-text').textContent.trim();
+  if (!text) { showToast('Post text cannot be empty', 'error'); return; }
+
+  if (!confirm('Publish this post to your LinkedIn profile?')) return;
+
+  try {
+    const res = await fetch('/api/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: currentPostId, text })
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error, 'error'); return; }
+
+    showToast('🎉 Post published to LinkedIn!', 'success');
+    document.getElementById('draft-result').style.display = 'none';
+    document.getElementById('draft-topic').value = '';
+    currentPostId = null;
+    stats.published++;
+    stats.pending = Math.max(0, stats.pending - 1);
+    updateStats();
+    updatePendingBadge();
+  } catch(e) {
+    showToast('Error publishing post', 'error');
+  }
+}
+
+async function regeneratePost() {
+  if (!currentPostId) return;
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Regenerating...';
+
+  try {
+    const res = await fetch('/api/regenerate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: currentPostId })
+    });
+    const data = await res.json();
+    if (data.draft) {
+      document.getElementById('draft-text').textContent = data.draft;
+      showToast('New draft generated!');
+    }
+  } catch(e) {
+    showToast('Error regenerating', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-refresh"></i> Regenerate';
+  }
+}
+
+async function rejectPost() {
+  if (!currentPostId) return;
+  if (!confirm('Discard this draft?')) return;
+
+  await fetch('/api/reject', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ post_id: currentPostId })
+  });
+
+  document.getElementById('draft-result').style.display = 'none';
+  currentPostId = null;
+  stats.pending = Math.max(0, stats.pending - 1);
+  updateStats();
+  updatePendingBadge();
+  showToast('Draft discarded');
+}
+
+// ── Pending Posts ─────────────────────────────────────────────────────────────
+async function loadPending() {
+  try {
+    const res = await fetch('/api/pending');
+    const data = await res.json();
+    const list = document.getElementById('pending-list');
+
+    if (!data.posts || data.posts.length === 0) {
+      list.innerHTML = `<div class="empty"><i class="ti ti-inbox"></i><p>No pending posts — draft one to get started!</p></div>`;
+      return;
+    }
+
+    list.innerHTML = data.posts.map(post => `
+      <div class="pending-card" id="pending-${post.id}">
+        <div class="pending-header">
+          <span class="pending-topic">${escHtml(post.topic)}</span>
+          <span class="pending-status status-${post.status}">${post.status}</span>
+        </div>
+        <div class="pending-text" id="ptext-${post.id}" contenteditable="${post.status==='pending'}" spellcheck="true">${escHtml(post.draft)}</div>
+        ${post.status === 'pending' ? `
+        <div class="pending-actions">
+          <button class="btn btn-success btn-sm" onclick="approvePending('${post.id}')">
+            <i class="ti ti-check"></i> Approve & Publish
+          </button>
+          <button class="btn btn-sm" onclick="rejectPending('${post.id}')">
+            <i class="ti ti-x"></i> Discard
+          </button>
+        </div>` : `<div style="font-size:12px;color:var(--green);font-weight:500"><i class="ti ti-check" style="font-size:14px;vertical-align:-2px"></i> Published</div>`}
+      </div>
+    `).join('');
+
+    updatePendingBadge(data.posts.filter(p => p.status === 'pending').length);
+  } catch(e) {}
+}
+
+async function approvePending(postId) {
+  const text = document.getElementById(`ptext-${postId}`).textContent.trim();
+  if (!confirm('Publish this post to LinkedIn?')) return;
+
+  const res = await fetch('/api/approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ post_id: postId, text })
+  });
+  const data = await res.json();
+  if (data.error) { showToast(data.error, 'error'); return; }
+
+  showToast('🎉 Post published to LinkedIn!', 'success');
+  stats.published++;
+  stats.pending = Math.max(0, stats.pending - 1);
+  updateStats();
+  loadPending();
+}
+
+async function rejectPending(postId) {
+  if (!confirm('Discard this draft?')) return;
+  await fetch('/api/reject', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ post_id: postId })
+  });
+  stats.pending = Math.max(0, stats.pending - 1);
+  updateStats();
+  loadPending();
+  showToast('Draft discarded');
+}
+
+// ── Profile Improver ──────────────────────────────────────────────────────────
+async function improveProfile() {
+  const section = document.getElementById('profile-section').value;
+  const text = document.getElementById('profile-current').value.trim();
+  if (!text) { showToast('Please paste your current text first', 'error'); return; }
+
+  const btn = document.getElementById('improve-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Improving...';
+
+  try {
+    const res = await fetch('/api/improve-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ section, text })
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error, 'error'); return; }
+
+    document.getElementById('profile-improved').textContent = data.improved;
+    document.getElementById('profile-result').style.display = 'block';
+    document.getElementById('profile-result').scrollIntoView({ behavior: 'smooth' });
+    stats.improved++;
+    updateStats();
+    showToast('Profile section improved!');
+  } catch(e) {
+    showToast('Error improving profile', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-sparkles"></i> Improve with AI';
+  }
+}
+
+function copyImproved() {
+  const text = document.getElementById('profile-improved').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-drafted').textContent = stats.drafted;
+  document.getElementById('stat-published').textContent = stats.published;
+  document.getElementById('stat-pending').textContent = stats.pending;
+  document.getElementById('stat-improved').textContent = stats.improved;
+}
+
+function updatePendingBadge(count) {
+  const badge = document.getElementById('pending-badge');
+  const n = count !== undefined ? count : stats.pending;
+  if (n > 0) { badge.textContent = n; badge.style.display = 'inline'; }
+  else { badge.style.display = 'none'; }
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `show ${type}`;
+  setTimeout(() => t.className = '', 3000);
+}
+
+function logout() {
+  window.location.href = '/logout';
+}
+
+init();
+</script>
+</body>
+</html>
