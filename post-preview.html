@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Post Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .post-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .post-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f5f5f5;
+        }
+        
+        .avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .header-info {
+            flex: 1;
+        }
+        
+        .author-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: #000;
+        }
+        
+        .author-title {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .timestamp {
+            font-size: 13px;
+            color: #999;
+        }
+        
+        .post-body {
+            padding: 16px;
+        }
+        
+        .post-text {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #000;
+            margin-bottom: 12px;
+        }
+        
+        .emoji {
+            font-size: 18px;
+        }
+        
+        .highlight {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .checkmark {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .hashtags {
+            color: #0073b1;
+            font-weight: 500;
+        }
+        
+        .stats {
+            padding: 12px 16px;
+            background: #f5f5f5;
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .stat-item {
+            cursor: pointer;
+        }
+        
+        .stat-number {
+            font-weight: 700;
+            color: #000;
+        }
+        
+        .actions {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-around;
+            gap: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: none;
+            color: #666;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #f0f0f0;
+            color: #000;
+        }
+        
+        .share-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-top: 16px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .copy-btn {
+            background: white;
+            color: #667eea;
+            margin-top: 12px;
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="info-box">
+            💡 <strong>Ready to post!</strong> Copy this text to LinkedIn, or use the app at localhost:8000 to auto-publish with OAuth.
+        </div>
+        
+        <div class="post-card">
+            <!-- Header -->
+            <div class="post-header">
+                <div class="avatar">🤖</div>
+                <div class="header-info">
+                    <div class="author-name">Shafqatsarwar</div>
+                    <div class="author-title">Agentic AI Developer • Automation for SMEs</div>
+                    <div class="timestamp">Just now • 🌍</div>
+                </div>
+            </div>
+            
+            <!-- Body -->
+            <div class="post-body">
+                <div class="post-text">
+                    Just shipped something cool <span class="emoji">🤖</span><br><br>
+                    
+                    <span class="highlight">LinkedIn Manager Agent</span> – An AI-powered assistant that:<br><br>
+                    
+                    <span class="checkmark">✅ Drafts your posts with Gemini 2.5 Flash</span><br>
+                    <span class="checkmark">✅ Keeps YOU in control (human-in-the-loop)</span><br>
+                    <span class="checkmark">✅ Auto-publishes with one click</span><br>
+                    <span class="checkmark">✅ Optimizes your profile</span><br><br>
+                    
+                    No more writer's block. No more soul-less corporate posts. Just authentic LinkedIn content, powered by AI.<br><br>
+                    
+                    <strong>The Stack:</strong> Python + OAuth + Gemini + Beautiful Dashboard<br><br>
+                    
+                    Open source: <span class="hashtags">github.com/Shafqatsarwar/linkedin-agent</span><br><br>
+                    
+                    <span class="hashtags">#AgenticAI #Automation #LinkedIn #OpenSource</span>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-item">👍 <span class="stat-number">128</span></div>
+                <div class="stat-item">💬 <span class="stat-number">24</span></div>
+                <div class="stat-item">♻️ <span class="stat-number">18</span></div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="actions">
+                <button class="action-btn">👍 Like</button>
+                <button class="action-btn">💬 Comment</button>
+                <button class="action-btn">♻️ Repost</button>
+                <button class="action-btn">✉️ Send</button>
+            </div>
+        </div>
+        
+        <button class="copy-btn" onclick="copyToClipboard()">📋 Copy Post Text</button>
+        <button class="share-btn" onclick="alert('Visit http://localhost:8000 to use the LinkedIn Manager Agent app!')">🚀 Use the App</button>
+    </div>
+    
+    <script>
+        function copyToClipboard() {
+            const text = `Just shipped something cool 🤖
+
+LinkedIn Manager Agent – An AI-powered assistant that:
+✅ Drafts your posts with Gemini 2.5 Flash
+✅ Keeps YOU in control (human-in-the-loop)
+✅ Auto-publishes with one click
+✅ Optimizes your profile
+
+No more writer's block. No more soul-less corporate posts. Just authentic LinkedIn content, powered by AI.
+
+The Stack: Python + OAuth + Gemini + Beautiful Dashboard
+
+Open source: github.com/Shafqatsarwar/linkedin-agent
+
+#AgenticAI #Automation #LinkedIn #OpenSource`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Post text copied to clipboard! Paste it into LinkedIn now.');
+            });
+        }
+    </script>
+</body>
+</html>
