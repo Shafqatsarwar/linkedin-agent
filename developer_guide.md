@@ -1,21 +1,5 @@
 # LinkedIn Manager Agent — Complete Developer Guide
-
-**Status: ✅ Production Ready** — OAuth validated, Gemini integration confirmed, fully automated posting workflow operational.
-
-You have **two separate working versions** of this agent. Use whichever fits the moment.
-
-| | Laptop Version (Recommended) | Claude.ai Version |
-|---|---|---|
-| **Where it runs** | Your computer (`python app.py`) | Inside Claude.ai chat as an artifact |
-| **AI Engine** | Gemini 2.5 Flash (your quota) | Gemini 2.5 Flash (your quota) |
-| **Auto-publish to LinkedIn** | ✅ **Yes** — real OAuth + API | ❌ Manual copy-paste |
-| **LinkedIn Login** | ✅ **Yes** | ❌ No |
-| **Profile Optimization** | ✅ **Yes** | ❌ No |
-| **Requires Installation** | Python 3 only | Nothing |
-| **Best For** | Daily automation workflow | Quick drafts while chatting |
-
----
-
+`python app.py`
 ## ⚡ QUICK START (5 minutes to posting)
 
 ### Step 1: Prerequisites
@@ -26,13 +10,33 @@ python --version
 # Verify dependencies installed
 pip list | findstr python-dotenv
 ```
+```bash
+cd D:\Panaverse\linkedin-agent
+python app.py
+```
+### Setup (Windows & Mac/Linux)
 
-### Step 2: Configure LinkedIn OAuth
-1. Go to: https://www.linkedin.com/developers/apps
-2. Select your app
-3. Click **Auth** tab
-4. Add to **Authorized redirect URLs**: `http://localhost:8000/callback`
-5. Copy `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET`
+```bash
+# Clone repository
+git clone https://github.com/Shafqatsarwar/linkedin-agent.git
+cd linkedin-agent
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Verify environment variables
+python -c "from dotenv import load_dotenv; import os; load_dotenv(); print('✅ All set!') if all(os.getenv(k) for k in ['LINKEDIN_CLIENT_ID','LINKEDIN_CLIENT_SECRET','GEMINI_API_KEY']) else print('❌ Missing env vars')"
+
+# Run the agent
+python app.py
+```
+### Step 2: Use It
+- Open: http://localhost:8000
+- Click **"Continue with LinkedIn"**
+- Approve permissions
+- Enter a topic → AI drafts → You approve → **Posted! 🚀**
+
+---
 
 ### Step 3: Get Gemini API Key
 1. Go to: https://ai.google.dev
@@ -48,20 +52,12 @@ GEMINI_API_KEY=your_gemini_key_here
 SECRET_KEY=your-random-secret-key
 PORT=8000
 ```
-
-### Step 5: Start the Agent
-```bash
-cd D:\Panaverse\linkedin-agent
-python app.py
-```
-
-### Step 6: Use It
-- Open: http://localhost:8000
-- Click **"Continue with LinkedIn"**
-- Approve permissions
-- Enter a topic → AI drafts → You approve → **Posted! 🚀**
-
----
+### Step 5: Configure LinkedIn OAuth
+1. Go to: https://www.linkedin.com/developers/apps
+2. Select your app
+3. Click **Auth** tab
+4. Add to **Authorized redirect URLs**: `http://localhost:8000/callback`
+5. Copy `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET`
 
 ### ✅ What's Verified & Working
 
@@ -90,22 +86,6 @@ linkedin-agent/
 └── project_visual.html       # Architecture visualization
 ```
 
-### Setup (Windows & Mac/Linux)
-
-```bash
-# Clone repository
-git clone https://github.com/Shafqatsarwar/linkedin-agent.git
-cd linkedin-agent
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Verify environment variables
-python -c "from dotenv import load_dotenv; import os; load_dotenv(); print('✅ All set!') if all(os.getenv(k) for k in ['LINKEDIN_CLIENT_ID','LINKEDIN_CLIENT_SECRET','GEMINI_API_KEY']) else print('❌ Missing env vars')"
-
-# Run the agent
-python app.py
-```
 
 **Output when running:**
 ```
