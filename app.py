@@ -32,7 +32,7 @@ def validate_env():
     if not GEMINI_API_KEY:
         missing.append("GEMINI_API_KEY")
     if missing:
-        print(f"❌ ERROR: Missing required environment variables: {', '.join(missing)}")
+        print(f"ERROR: Missing required environment variables: {', '.join(missing)}")
         print("   Create a .env file in the project root with these keys.")
         exit(1)
 
@@ -83,15 +83,95 @@ def get_linkedin_profile(access_token):
     except urllib.error.HTTPError as e:
         return {"error": e.read().decode()}
 
-def post_to_linkedin(access_token, author_urn, text):
+def register_and_upload_media(access_token, author_urn, file_bytes, mime_type):
+    if mime_type.startswith("video/"):
+        recipe = "urn:li:digitalmediaRecipe:feedshare-video"
+        media_category = "VIDEO"
+    else:
+        recipe = "urn:li:digitalmediaRecipe:feedshare-image"
+        media_category = "IMAGE"
+
+    payload = json.dumps({
+        "registerUploadRequest": {
+            "recipes": [recipe],
+            "owner": author_urn,
+            "serviceRelationships": [
+                {
+                    "relationshipType": "OWNER",
+                    "identifier": "urn:li:userGeneratedContent"
+                }
+            ]
+        }
+    }).encode()
+
+    register_req = urllib.request.Request(
+        f"{LINKEDIN_API_BASE}/assets?action=registerUpload",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            "X-Restli-Protocol-Version": "2.0.0"
+        }
+    )
+
+    try:
+        with urllib.request.urlopen(register_req) as r:
+            resp = json.loads(r.read())
+        
+        value = resp.get("value", {})
+        asset = value.get("asset")
+        upload_mechanism = value.get("uploadMechanism", {})
+        http_request = upload_mechanism.get("com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest", {})
+        upload_url = http_request.get("uploadUrl")
+        extra_headers = http_request.get("headers", {})
+
+        if not asset or not upload_url:
+            return {"error": "Failed to get asset URN or upload URL from LinkedIn"}
+
+        put_headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": mime_type,
+            "X-Restli-Protocol-Version": "2.0.0"
+        }
+        if extra_headers:
+            put_headers.update(extra_headers)
+
+        put_req = urllib.request.Request(
+            upload_url,
+            data=file_bytes,
+            headers=put_headers,
+            method="PUT"
+        )
+
+        with urllib.request.urlopen(put_req) as r:
+            pass
+
+        return {
+            "success": True,
+            "asset": asset,
+            "media_category": media_category
+        }
+    except urllib.error.HTTPError as e:
+        return {"error": f"LinkedIn API Error: {e.read().decode()}"}
+    except Exception as e:
+        return {"error": f"Upload failed: {str(e)}"}
+
+def post_to_linkedin(access_token, author_urn, text, media_asset=None, media_category=None):
+    share_content = {
+        "shareCommentary": {"text": text},
+        "shareMediaCategory": media_category if media_category else "NONE"
+    }
+    if media_asset and media_category:
+        share_content["media"] = [{
+            "status": "READY",
+            "media": media_asset
+        }]
+
     payload = json.dumps({
         "author": author_urn,
         "lifecycleState": "PUBLISHED",
         "specificContent": {
-            "com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {"text": text},
-                "shareMediaCategory": "NONE"
-            }
+            "com.linkedin.ugc.ShareContent": share_content
         },
         "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"}
     }).encode()
@@ -350,10 +430,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "Post not found"}, 404)
                 return
 
+            post = pending_posts[post_id]
             result = post_to_linkedin(
                 session["access_token"],
                 session["author_urn"],
-                final_text
+                final_text,
+                media_asset=post.get("media_asset"),
+                media_category=post.get("media_category")
             )
 
             if "error" in result:
@@ -361,6 +444,69 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 pending_posts[post_id]["status"] = "published"
                 self.send_json({"success": True, "message": "Post published to LinkedIn!"})
+
+        # Upload media file to LinkedIn
+        elif path == "/api/upload-media":
+            body = self.read_body()
+            mime_type = body.get("mime_type")
+            file_data_b64 = body.get("file_data")
+
+            if not mime_type or not file_data_b64:
+                self.send_json({"error": "mime_type and file_data are required"}, 400)
+                return
+
+            if "," in file_data_b64:
+                file_data_b64 = file_data_b64.split(",", 1)[1]
+
+            try:
+                import base64
+                file_bytes = base64.b64decode(file_data_b64)
+            except Exception as e:
+                self.send_json({"error": f"Failed to decode base64: {str(e)}"}, 400)
+                return
+
+            res = register_and_upload_media(
+                session["access_token"],
+                session["author_urn"],
+                file_bytes,
+                mime_type
+            )
+
+            if "error" in res:
+                self.send_json({"error": res["error"]}, 400)
+            else:
+                self.send_json({
+                    "success": True,
+                    "asset": res["asset"],
+                    "media_category": res["media_category"]
+                })
+
+        # Attach media to a pending post
+        elif path == "/api/attach-media":
+            body = self.read_body()
+            post_id = body.get("post_id")
+            media_asset = body.get("media_asset")
+            media_category = body.get("media_category")
+            media_preview = body.get("media_preview")
+
+            if not post_id:
+                self.send_json({"error": "post_id is required"}, 400)
+                return
+
+            if post_id not in pending_posts:
+                self.send_json({"error": "Post not found"}, 404)
+                return
+
+            if media_asset:
+                pending_posts[post_id]["media_asset"] = media_asset
+                pending_posts[post_id]["media_category"] = media_category
+                pending_posts[post_id]["media_preview"] = media_preview
+            else:
+                pending_posts[post_id].pop("media_asset", None)
+                pending_posts[post_id].pop("media_category", None)
+                pending_posts[post_id].pop("media_preview", None)
+
+            self.send_json({"success": True})
 
         # Reject/delete a pending post
         elif path == "/api/reject":
@@ -404,17 +550,17 @@ if __name__ == "__main__":
     validate_env()  # Check all required env vars before starting
     port = PORT
     print(f"""
-╔══════════════════════════════════════════════╗
-║     LinkedIn Manager Agent is running!       ║
-║                                              ║
-║  Open: http://localhost:{port}                 ║
-║  Login with your LinkedIn account            ║
-║  Press Ctrl+C to stop                        ║
-╚══════════════════════════════════════════════╝
++----------------------------------------------+
+|     LinkedIn Manager Agent is running!       |
+|                                              |
+|  Open: http://localhost:{port}                 |
+|  Login with your LinkedIn account            |
+|  Press Ctrl+C to stop                        |
++----------------------------------------------+
     """)
     server = HTTPServer(("", port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n✓ Server stopped gracefully.")
-        print("\n  Server stopped.")
+        print("\nServer stopped gracefully.")
+        print("\nServer stopped.")

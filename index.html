@@ -147,6 +147,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .empty i{font-size:40px;margin-bottom:12px;display:block}
 .empty p{font-size:14px}
 
+/* Media upload styles */
+.media-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  text-align: center;
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.media-dropzone:hover, .media-dropzone.dragover {
+  border-color: var(--blue);
+  background: var(--blue-light);
+  color: var(--blue);
+}
+.media-dropzone p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.media-dropzone p span {
+  color: var(--blue);
+  font-weight: 600;
+  text-decoration: underline;
+}
+.media-preview-container {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: #fdfdfd;
+}
+.media-preview-box {
+  max-width: 100%;
+  max-height: 300px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  margin-bottom: 8px;
+}
+.media-preview-box img, .media-preview-box video {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+}
+
 @media(max-width:768px){
   #sidebar{transform:translateX(-100%)}
   #main{margin-left:0;padding:16px}
@@ -307,6 +359,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
             contenteditable="true"
             spellcheck="true"
           ></div>
+          
+          <!-- Media Upload Zone -->
+          <div class="media-upload-container" style="margin: 16px 0;">
+            <label class="form-label" style="display: flex; align-items: center; gap: 6px; font-weight: 500;"><i class="ti ti-photo" style="color: var(--blue);"></i> Attach Media (Optional)</label>
+            <div id="media-dropzone" class="media-dropzone" onclick="document.getElementById('media-file-input').click()">
+              <i class="ti ti-cloud-upload" style="font-size: 28px; color: var(--blue);"></i>
+              <p>Drag & Drop JPG, PNG, or MP4 here, or <span>browse</span></p>
+              <input type="file" id="media-file-input" accept="image/jpeg, image/png, video/mp4" style="display: none;" onchange="handleFileSelect(this)"/>
+            </div>
+            
+            <div id="media-preview-container" class="media-preview-container" style="display: none;">
+              <div id="media-preview-box" class="media-preview-box"></div>
+              <button class="btn btn-danger btn-sm" onclick="removeAttachedMedia()">
+                <i class="ti ti-trash"></i> Remove Media
+              </button>
+            </div>
+          </div>
+
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
             <button class="btn btn-success" onclick="approvePost()">
               <i class="ti ti-check"></i> Approve & Publish
@@ -393,6 +463,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 let currentPostId = null;
 let selectedTone = 'professional';
 let stats = { drafted: 0, published: 0, pending: 0, improved: 0 };
+let currentMedia = { asset: null, category: null, preview: null };
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
@@ -425,6 +496,7 @@ function showApp(user) {
 
   loadPending();
   updateStats();
+  setupDragAndDrop();
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────────
@@ -446,6 +518,12 @@ function selectTone(el, tone) {
 async function draftPost() {
   const topic = document.getElementById('draft-topic').value.trim();
   if (!topic) { showToast('Please enter a topic first', 'error'); return; }
+
+  currentMedia = { asset: null, category: null, preview: null };
+  document.getElementById('media-preview-container').style.display = 'none';
+  document.getElementById('media-dropzone').style.display = 'flex';
+  const fileInput = document.getElementById('media-file-input');
+  if (fileInput) fileInput.value = '';
 
   const btn = document.getElementById('draft-btn');
   btn.disabled = true;
@@ -544,6 +622,9 @@ async function rejectPost() {
 
   document.getElementById('draft-result').style.display = 'none';
   currentPostId = null;
+  currentMedia = { asset: null, category: null, preview: null };
+  const fileInput = document.getElementById('media-file-input');
+  if (fileInput) fileInput.value = '';
   stats.pending = Math.max(0, stats.pending - 1);
   updateStats();
   updatePendingBadge();
@@ -569,6 +650,30 @@ async function loadPending() {
           <span class="pending-status status-${post.status}">${post.status}</span>
         </div>
         <div class="pending-text" id="ptext-${post.id}" contenteditable="${post.status==='pending'}" spellcheck="true">${escHtml(post.draft)}</div>
+        
+        ${post.media_preview ? `
+        <div class="media-preview-box" style="margin-bottom: 12px; max-height: 200px;">
+          ${post.media_category === 'VIDEO' ? 
+            `<video src="${post.media_preview}" controls style="max-height: 200px;"></video>` : 
+            `<img src="${post.media_preview}" alt="Media Preview" style="max-height: 200px;"/>`
+          }
+        </div>
+        ` : ''}
+
+        ${post.status === 'pending' ? `
+        <div style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center;">
+          <input type="file" id="pending-file-${post.id}" accept="image/jpeg, image/png, video/mp4" style="display: none;" onchange="uploadPendingMedia('${post.id}')"/>
+          <button class="btn btn-sm" onclick="document.getElementById('pending-file-${post.id}').click()">
+            <i class="ti ti-photo"></i> ${post.media_preview ? 'Change Media' : 'Attach Media'}
+          </button>
+          ${post.media_preview ? `
+            <button class="btn btn-danger btn-sm" onclick="removePendingMedia('${post.id}')">
+              <i class="ti ti-trash"></i> Detach
+            </button>
+          ` : ''}
+        </div>
+        ` : ''}
+
         ${post.status === 'pending' ? `
         <div class="pending-actions">
           <button class="btn btn-success btn-sm" onclick="approvePending('${post.id}')">
@@ -679,6 +784,225 @@ function showToast(msg, type = '') {
   t.textContent = msg;
   t.className = `show ${type}`;
   setTimeout(() => t.className = '', 3000);
+}
+
+// ── Media Helpers ─────────────────────────────────────────────────────────────
+function setupDragAndDrop() {
+  const zone = document.getElementById('media-dropzone');
+  if (!zone) return;
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    zone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      zone.classList.add('dragover');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    zone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+    }, false);
+  });
+
+  zone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (validateFile(file)) {
+        uploadMediaFile(file);
+      }
+    }
+  }, false);
+}
+
+function validateFile(file) {
+  const allowed = ['image/jpeg', 'image/png', 'video/mp4'];
+  if (!allowed.includes(file.type)) {
+    showToast('Invalid file type. Only JPG, PNG, and MP4 are supported.', 'error');
+    return false;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    showToast('File is too large. Maximum size is 50MB.', 'error');
+    return false;
+  }
+  return true;
+}
+
+function handleFileSelect(input) {
+  const files = input.files;
+  if (files.length > 0) {
+    const file = files[0];
+    if (validateFile(file)) {
+      uploadMediaFile(file);
+    }
+  }
+}
+
+async function uploadMediaFile(file) {
+  const dropzone = document.getElementById('media-dropzone');
+  if (!dropzone) return;
+  const originalHtml = dropzone.innerHTML;
+  dropzone.style.pointerEvents = 'none';
+  dropzone.innerHTML = '<span class="spinner" style="border-top-color: var(--blue)"></span><p style="margin-top:8px">Uploading to LinkedIn...</p>';
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const base64Data = e.target.result;
+    try {
+      const res = await fetch('/api/upload-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mime_type: file.type,
+          file_data: base64Data
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        showToast(data.error, 'error');
+        resetDropzone(dropzone, originalHtml);
+        return;
+      }
+
+      currentMedia.asset = data.asset;
+      currentMedia.category = data.media_category;
+      currentMedia.preview = base64Data;
+
+      if (currentPostId) {
+        await fetch('/api/attach-media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            post_id: currentPostId,
+            media_asset: data.asset,
+            media_category: data.media_category,
+            media_preview: base64Data
+          })
+        });
+      }
+
+      showMediaPreview(file.type, base64Data);
+      showToast('Media uploaded & attached successfully!');
+    } catch(err) {
+      showToast('Failed to upload media', 'error');
+      resetDropzone(dropzone, originalHtml);
+    } finally {
+      resetDropzone(dropzone, originalHtml);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetDropzone(dropzone, html) {
+  dropzone.style.pointerEvents = 'auto';
+  dropzone.innerHTML = html;
+}
+
+function showMediaPreview(mimeType, dataUrl) {
+  const container = document.getElementById('media-preview-container');
+  const box = document.getElementById('media-preview-box');
+  const dropzone = document.getElementById('media-dropzone');
+  
+  if (mimeType.startsWith('video/')) {
+    box.innerHTML = `<video src="${dataUrl}" controls></video>`;
+  } else {
+    box.innerHTML = `<img src="${dataUrl}" alt="Media Preview"/>`;
+  }
+  
+  container.style.display = 'block';
+  dropzone.style.display = 'none';
+}
+
+async function removeAttachedMedia() {
+  currentMedia = { asset: null, category: null, preview: null };
+  document.getElementById('media-preview-container').style.display = 'none';
+  document.getElementById('media-dropzone').style.display = 'flex';
+  const fileInput = document.getElementById('media-file-input');
+  if (fileInput) fileInput.value = '';
+
+  if (currentPostId) {
+    await fetch('/api/attach-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        post_id: currentPostId,
+        media_asset: null
+      })
+    });
+  }
+  showToast('Media removed');
+}
+
+async function uploadPendingMedia(postId) {
+  const input = document.getElementById(`pending-file-${postId}`);
+  if (!input || !input.files || input.files.length === 0) return;
+  const file = input.files[0];
+  if (!validateFile(file)) return;
+
+  const btn = event.currentTarget || document.activeElement;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Uploading...';
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const base64Data = e.target.result;
+    try {
+      const res = await fetch('/api/upload-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mime_type: file.type,
+          file_data: base64Data
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        showToast(data.error, 'error');
+        return;
+      }
+
+      await fetch('/api/attach-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: postId,
+          media_asset: data.asset,
+          media_category: data.media_category,
+          media_preview: base64Data
+        })
+      });
+
+      showToast('Media attached to pending post!');
+      loadPending();
+    } catch(err) {
+      showToast('Failed to attach media', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function removePendingMedia(postId) {
+  if (!confirm('Remove media from this pending post?')) return;
+  try {
+    await fetch('/api/attach-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        post_id: postId,
+        media_asset: null
+      })
+    });
+    showToast('Media detached');
+    loadPending();
+  } catch(e) {
+    showToast('Failed to detach media', 'error');
+  }
 }
 
 function logout() {
